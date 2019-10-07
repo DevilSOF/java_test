@@ -6,7 +6,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,7 +21,7 @@ public class Test {
    *
    * @param args .
    */
-  public static void main(final String[] args) {
+  public static void main(final String[] args) throws Exception {
     String csvInFileName = "test_data.csv";
     String csvOutFileName = "test_data_out.csv";
 
@@ -36,13 +35,11 @@ public class Test {
 
     int rows = csvData[0].length;
     int cols = csvData.length;
-    int count = 0;
     long timerStart = System.currentTimeMillis();
     List<String> uniquePairs = new ArrayList<String>();
 
     for (int i = 1; i < rows; i++) {
       uniquePairs.add(csvData[0][i] + csvData[1][i]);
-      count += 1;
     }
 
     uniquePairs = uniquePairs.stream().distinct().collect(Collectors.toList());
@@ -67,82 +64,32 @@ public class Test {
       }
 
       int tmpCols = tmpData.size();
-      int tmpRows = tmpData.get(0).size();
 
-      System.out.println("pair " + pair + " " + tmpRows + " rows" + " " + tmpCols + " cols");
-
+      Thread[] statInfoThreads = new Thread[5];
+      StatInfo[] myRunnableStatInfos = new StatInfo[5];
       for (int j = 2; j < tmpCols; j++) {
-        System.out.println(tmpData.get(j).get(0)
-                          + " "
-                          + Arrays.toString(statInfo(tmpData.get(j),
-                                                      tmpData.get(0).get(1),
-                                                      tmpData.get(1).get(1))));
-
-        arrayToCsv(statInfo(tmpData.get(j),
-                               tmpData.get(0).get(1),
-                               tmpData.get(1).get(1)));
+        myRunnableStatInfos[j - 2] = new StatInfo(tmpData.get(j),tmpData.get(0).get(1), tmpData.get(1).get(1));
+        statInfoThreads[j - 2] = new Thread(myRunnableStatInfos[j - 2]);
+        statInfoThreads[j - 2].start();
       }
 
+      for (Thread thread : statInfoThreads) {
+        thread.join();
+      }
+
+      for (StatInfo myRunnableStatInfo : myRunnableStatInfos) {
+        arrayToCsv(myRunnableStatInfo.results);
+      }
       mm++;
-      System.out.println();
     }
 
     System.out.println(mm + " all massives");
 
     long timerEnd = System.currentTimeMillis();
-
     System.out.println("ms = " + (timerEnd - timerStart));
-    System.out.println("count = " + count);
-    System.out.println(rows + "\n" + cols);
   }
 
-  /**
-   * Stat info.
-   * @param data incoming massive.
-   * @param well id well.
-   * @param stratum id stratum.
-   * @return  results array of data.
-   */
-  public static String[] statInfo(final List<String> data, final String well, final String stratum) {
-    double tmpValue = Double.valueOf(data.get(1));
-    String[] results = new String[7];
-
-    double minValue = 0;
-    double maxValue = 0;
-    double sumValue = 0;
-    double median;
-    int count = 0;
-
-    for (int i = 1; i < data.size(); i++) {
-      count++;
-      tmpValue = Double.valueOf(data.get(i));
-      sumValue += tmpValue;
-
-      if (tmpValue != 0 && tmpValue < minValue || minValue == 0) {
-        minValue = tmpValue;
-      }
-
-      if (tmpValue > maxValue) {
-        maxValue = tmpValue;
-      }
-    }
-
-    median = (sumValue != 0 ? (sumValue / count) : sumValue);
-
-    results[0] = well;
-    results[1] = stratum;
-    results[2] = String.valueOf(median);
-    results[3] = String.valueOf(minValue);
-    results[4] = String.valueOf(maxValue);
-    results[5] = String.valueOf(sumValue);
-
-    String column = data.get(0);
-    results[6] = column;
-
-    return results;
-  }
-
-  /**
+   /**
    * write array to csv file.
    * @param dataOut input array of data.
    */
@@ -218,17 +165,74 @@ public class Test {
       e.printStackTrace();
     }
 
-    // rows and cols names are shuffled
-    int rows = list.size();
-    int cols = list.get(0).size();
-    String[][] array2d = new String[rows][cols];
-    // System.out.println(rows + " - rows" + "\n" + cols + " - cols" + "\n");
-    for (int row = 0; row < rows; row++) {
-      for (int col = 0; col < cols; col++) {
-        array2d[row][col] = list.get(row).get(col).replace(",", ".");
+    int cols = list.size();
+    int rows = list.get(0).size();
+    String[][] array2d = new String[cols][rows];
+
+    for (int col = 0; col < cols; col++) {
+      for (int row = 0; row < rows; row++) {
+        array2d[col][row] = list.get(col).get(row).replace(",", ".");
       }
     }
 
     return array2d;
+  }
+}
+
+class StatInfo implements Runnable {
+
+  public String[] results = new String[7];
+  private List<String> data;
+  private String well;
+  private String stratum;
+
+  /**
+   * Runnable setter for variables.
+   * @param data    input data for thread.
+   * @param well    input well name for thread.
+   * @param stratum input well name for stratum.
+   */
+  public StatInfo(List<String> data, String well, String stratum) {
+    this.data = data;
+    this.well = well;
+    this.stratum = stratum;
+  }
+
+  /**
+   * procedure for median, min, max, sum metods.
+   */
+  public void run() {
+    double tmpValue = Double.valueOf(data.get(1));
+    double minValue = 0;
+    double maxValue = 0;
+    double sumValue = 0;
+    double median;
+    int count = 0;
+
+    for (int i = 1; i < data.size(); i++) {
+      count++;
+      tmpValue = Double.valueOf(data.get(i));
+      sumValue += tmpValue;
+
+      if (tmpValue != 0 && tmpValue < minValue || minValue == 0) {
+        minValue = tmpValue;
+      }
+
+      if (tmpValue > maxValue) {
+        maxValue = tmpValue;
+      }
+    }
+
+    median = (sumValue != 0 ? (sumValue / count) : sumValue);
+
+    results[0] = well;
+    results[1] = stratum;
+    results[2] = String.valueOf(median);
+    results[3] = String.valueOf(minValue);
+    results[4] = String.valueOf(maxValue);
+    results[5] = String.valueOf(sumValue);
+
+    String column = data.get(0);
+    results[6] = column;
   }
 }
