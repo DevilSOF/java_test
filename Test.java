@@ -1,141 +1,167 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Collection;
-import static java.util.stream.Collectors.toList;
 
-public class Test{
-  static String[][] csv_data;
-  public static void main(String[] args) {
-    String csv_in = "test_data.csv";
-    String csv_out = "test_data_out.csv";
+public class Test {
 
-    csv_data = csv_to_array2d(csv_in);
+  /**
+   * csvData - temporary variable.
+   */
+  static String[][] csvData;
 
-    File csv_file_out = new File(csv_out);
+  /**
+   * Main program.
+   *
+   * @param args .
+   */
+  public static void main(final String[] args) {
+    String csvInFileName = "test_data.csv";
+    String csvOutFileName = "test_data_out.csv";
 
-    if (csv_file_out.exists()) csv_file_out.delete();
+    csvData = csvToArray2d(csvInFileName);
 
-    int rows = csv_data[0].length;
-    int cols = csv_data.length;
+    File csvFileOut = new File(csvOutFileName);
+
+    if (csvFileOut.exists()) {
+      csvFileOut.delete();
+    }
+
+    int rows = csvData[0].length;
+    int cols = csvData.length;
     int count = 0;
-    long t_start = System.currentTimeMillis();
-    List<String> unique_pairs = new ArrayList<String>();
+    long timerStart = System.currentTimeMillis();
+    List<String> uniquePairs = new ArrayList<String>();
 
     for (int i = 1; i < rows; i++) {
-      unique_pairs.add(csv_data[0][i] + csv_data[1][i]);
+      uniquePairs.add(csvData[0][i] + csvData[1][i]);
       count += 1;
     }
 
-    unique_pairs = unique_pairs.stream().distinct().collect(Collectors.toList());
+    uniquePairs = uniquePairs.stream().distinct().collect(Collectors.toList());
 
     int mm  = 0;
-    for (String pair : unique_pairs) {
+    for (String pair : uniquePairs) {
 
-      List<List<String>> tmp_data = new ArrayList<List<String>>();
+      List<List<String>> tmpData = new ArrayList<List<String>>();
 
       for (int i = 0; i < cols; i++) {
         List<String> subList = new ArrayList<String>();
-        subList.add(csv_data[i][0]);
-        tmp_data.add(subList);
+        subList.add(csvData[i][0]);
+        tmpData.add(subList);
       }
 
       for (int i = 1; i < rows; i++) {
-        if (pair.equals(csv_data[0][i] + csv_data[1][i])){
+        if (pair.equals(csvData[0][i] + csvData[1][i])) {
           for (int j = 0; j < cols; j++) {
-            tmp_data.get(j).add(csv_data[j][i]);
+            tmpData.get(j).add(csvData[j][i]);
           }
         }
       }
 
-      int tmp_cols = tmp_data.size();
-      int tmp_rows = tmp_data.get(0).size();
+      int tmpCols = tmpData.size();
+      int tmpRows = tmpData.get(0).size();
 
-      System.out.println("pair " + pair + " " + tmp_rows + " rows" + " " + tmp_cols + " cols");
+      System.out.println("pair " + pair + " " + tmpRows + " rows" + " " + tmpCols + " cols");
 
-      for (int j = 2; j < tmp_cols; j++) {
-       System.out.println(tmp_data.get(j).get(0)
+      for (int j = 2; j < tmpCols; j++) {
+        System.out.println(tmpData.get(j).get(0)
                           + " "
-                          + Arrays.toString(stat_info(tmp_data.get(j),
-                                                          tmp_data.get(0).get(1),
-                                                          tmp_data.get(1).get(1))));
+                          + Arrays.toString(statInfo(tmpData.get(j),
+                                                      tmpData.get(0).get(1),
+                                                      tmpData.get(1).get(1))));
 
-       array_to_csv(stat_info(tmp_data.get(j),
-                                  tmp_data.get(0).get(1),
-                                  tmp_data.get(1).get(1)));
+        arrayToCsv(statInfo(tmpData.get(j),
+                               tmpData.get(0).get(1),
+                               tmpData.get(1).get(1)));
       }
-        mm++;
-        System.out.println();
+
+      mm++;
+      System.out.println();
     }
 
     System.out.println(mm + " all massives");
 
-    long t_end = System.currentTimeMillis();
+    long timerEnd = System.currentTimeMillis();
 
-    System.out.println("ms = " + (t_end - t_start));
+    System.out.println("ms = " + (timerEnd - timerStart));
     System.out.println("count = " + count);
     System.out.println(rows + "\n" + cols);
-  } 
+  }
 
-  public static String[] stat_info(List<String> data, String well, String stratum) {
-    double tmp_value = Double.valueOf(data.get(1));
+  /**
+   * Stat info.
+   * @param data incoming massive.
+   * @param well id well.
+   * @param stratum id stratum.
+   * @return  results array of data.
+   */
+  public static String[] statInfo(final List<String> data, final String well, final String stratum) {
+    double tmpValue = Double.valueOf(data.get(1));
     String[] results = new String[7];
-    String column = data.get(0);
-    double min_value = 0, max_value = 0, sum_value = 0, median;
+
+    double minValue = 0;
+    double maxValue = 0;
+    double sumValue = 0;
+    double median;
     int count = 0;
-    
+
     for (int i = 1; i < data.size(); i++) {
       count++;
-      tmp_value = Double.valueOf(data.get(i));
-      sum_value += tmp_value;
+      tmpValue = Double.valueOf(data.get(i));
+      sumValue += tmpValue;
 
-      if (tmp_value != 0 && tmp_value < min_value || min_value == 0) {
-        min_value = tmp_value;
+      if (tmpValue != 0 && tmpValue < minValue || minValue == 0) {
+        minValue = tmpValue;
       }
 
-      if (tmp_value > max_value) {
-        max_value = tmp_value;
+      if (tmpValue > maxValue) {
+        maxValue = tmpValue;
       }
     }
 
-    median = (sum_value != 0 ? (sum_value / count) : sum_value);
+    median = (sumValue != 0 ? (sumValue / count) : sumValue);
 
     results[0] = well;
     results[1] = stratum;
     results[2] = String.valueOf(median);
-    results[3] = String.valueOf(min_value);
-    results[4] = String.valueOf(max_value);
-    results[5] = String.valueOf(sum_value);
+    results[3] = String.valueOf(minValue);
+    results[4] = String.valueOf(maxValue);
+    results[5] = String.valueOf(sumValue);
+
+    String column = data.get(0);
     results[6] = column;
-    
+
     return results;
   }
 
-  public static void array_to_csv(String[] data_out) {
+  /**
+   * write array to csv file.
+   * @param dataOut input array of data.
+   */
+  public static void arrayToCsv(final String[] dataOut) {
     BufferedWriter br;
-    String csv_out = "test_data_out.csv";
-    String[] headers = {"well", "stratum", "median", "min_value", "max_value", "sum_value", "column"};
-    File csv_file_out = new File(csv_out);
-    boolean headers_write = false;
+    String csvOutFileName = "test_data_out.csv";
+    String[] headers = {"well", "stratum", "median", "minValue", "maxValue", "sumValue", "column"};
+    File csvFileOut = new File(csvOutFileName);
+    boolean headersWrite = false;
 
-    if (!csv_file_out.exists()){
-     headers_write = !headers_write;
+    if (!csvFileOut.exists()) {
+      headersWrite = !headersWrite;
     }
 
     String delimiter = ";";
     try {
-      br = new BufferedWriter(new FileWriter(csv_out, true));
+      br = new BufferedWriter(new FileWriter(csvOutFileName, true));
 
-      if (headers_write){
+      if (headersWrite) {
         for (int i = 0; i < headers.length; i++) {
           delimiter = (i == headers.length - 1) ? "\n" : delimiter;
           br.write(headers[i] + delimiter);
@@ -143,34 +169,35 @@ public class Test{
       }
 
       delimiter = ";";
-      for (int i = 0; i < data_out.length; i++) {
-        delimiter = (i == data_out.length - 1) ? "\n" : delimiter;
-        br.write(data_out[i].replace(".", ",") + delimiter);
+      for (int i = 0; i < dataOut.length; i++) {
+        delimiter = (i == dataOut.length - 1) ? "\n" : delimiter;
+        br.write(dataOut[i].replace(".", ",") + delimiter);
       }
 
       br.close();
-      } catch (
-        FileNotFoundException e)
-        {
-          e.printStackTrace();
-        } catch (
-          IOException e)
-          {
-            e.printStackTrace();
-          }
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
     }
+  }
 
-  public static String[][] csv_to_array2d(String path) {
+  /**
+   * write csv file to array 2D.
+   * @param path path to csv file.
+   * @return array2d in variable.
+   */
+  public static String[][] csvToArray2d(final String path) {
     BufferedReader br;
     String line;
     String delimiter = ";";
     List<List<String>> list = new ArrayList<List<String>>();
-    
+
     try {
       br = new BufferedReader(new FileReader(path));
       line = br.readLine();
       String[] headers = line.split(delimiter);
-      
+
       for (String header : headers) {
         List<String> subList = new ArrayList<String>();
         subList.add(header);
