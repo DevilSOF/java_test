@@ -9,21 +9,42 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Test {
+public class Calculations {
 
   /**
    * csvData - temporary variable.
    */
-  static String[][] csvData;
+  private static String[][] csvData;
+  private static String csvOutFileName;
 
   /**
    * Main program.
    *
-   * @param args .
+   * @param args can be add two in and out files with .csv extensions.
    */
   public static void main(final String[] args) throws Exception {
-    String csvInFileName = "test_data.csv";
-    String csvOutFileName = "test_data_out.csv";
+    String csvInFileName;
+    String inputParamsErrorMessage = "Only in and out csv files";
+    String inputParamContains = ".csv";
+
+    if (args.length == 0) {
+      csvInFileName = "test_data.csv";
+      csvOutFileName = "test_data_out.csv";
+    } else {
+      if (args.length == 2) {
+        for (String arg : args) {
+          if (!arg.contains(inputParamContains)) {
+            System.out.println(inputParamsErrorMessage);
+            return;
+          }
+        }
+        csvInFileName = args[0];
+        csvOutFileName = args[1];
+      } else {
+        System.out.println(inputParamsErrorMessage);
+        return;
+      }
+    }
 
     csvData = csvToArray2d(csvInFileName);
 
@@ -78,24 +99,23 @@ public class Test {
       }
 
       for (StatInfo myRunnableStatInfo : myRunnableStatInfos) {
-        arrayToCsv(myRunnableStatInfo.results);
+        arrayToCsv(myRunnableStatInfo.getResults());
       }
       mm++;
     }
 
-    System.out.println(mm + " all massives");
+    System.out.println("\n" + mm + " all massives");
 
     long timerEnd = System.currentTimeMillis();
     System.out.println("ms = " + (timerEnd - timerStart));
   }
 
-   /**
+  /**
    * write array to csv file.
    * @param dataOut input array of data.
    */
-  public static void arrayToCsv(final String[] dataOut) {
+  private static void arrayToCsv(final String[] dataOut) {
     BufferedWriter br;
-    String csvOutFileName = "test_data_out.csv";
     String[] headers = {"well", "stratum", "median", "minValue", "maxValue", "sumValue", "column"};
     File csvFileOut = new File(csvOutFileName);
     boolean headersWrite = false;
@@ -134,7 +154,7 @@ public class Test {
    * @param path path to csv file.
    * @return array2d in variable.
    */
-  public static String[][] csvToArray2d(final String path) {
+  private static String[][] csvToArray2d(final String path) {
     BufferedReader br;
     String line;
     String delimiter = ";";
@@ -181,10 +201,14 @@ public class Test {
 
 class StatInfo implements Runnable {
 
-  public String[] results = new String[7];
+  private String[] results = new String[7];
   private List<String> data;
   private String well;
   private String stratum;
+
+  public String[] getResults() {
+    return results;
+  }
 
   /**
    * Runnable setter for variables.
