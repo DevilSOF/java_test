@@ -137,14 +137,14 @@ public class Calculations {
 
       if (headersWrite) {
         for (int i = 0; i < headers.length; i++) {
-          delimiter = (i == headers.length - 1) ? "\n" : delimiter;
+          delimiter = (i == headers.length - 1) ? "\r\n" : delimiter;
           br.write(headers[i] + delimiter);
         }
       }
 
       delimiter = ";";
       for (int i = 0; i < dataOut.length; i++) {
-        delimiter = (i == dataOut.length - 1) ? "\n" : delimiter;
+        delimiter = (i == dataOut.length - 1) ? "\r\n" : delimiter;
         br.write(dataOut[i].replace(".", ",") + delimiter);
       }
 
