@@ -297,7 +297,6 @@ class StatInfo implements Runnable {
         continue;
       }
 
-
       if (valueInCharArray(tempStringChars, maxLength)) {
         results[i + 2] = tempStringValue.replace(".0", "");
       } else {
