@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,12 +17,17 @@ public class Calculations {
    * csvData - temporary variable.
    */
   private static String[][] csvData;
+
+  /**
+   * csvOutFileName - out csv file name variable.
+   */
   private static String csvOutFileName;
 
   /**
    * Main program.
    *
    * @param args can be add two in and out files with .csv extensions.
+   * @throws Exception - for Threads join.
    */
   public static void main(final String[] args) throws Exception {
     String csvInFileName;
@@ -89,7 +96,7 @@ public class Calculations {
       Thread[] statInfoThreads = new Thread[5];
       StatInfo[] myRunnableStatInfos = new StatInfo[5];
       for (int j = 2; j < tmpCols; j++) {
-        myRunnableStatInfos[j - 2] = new StatInfo(tmpData.get(j),tmpData.get(0).get(1), tmpData.get(1).get(1));
+        myRunnableStatInfos[j - 2] = new StatInfo(tmpData.get(j), tmpData.get(0).get(1), tmpData.get(1).get(1));
         statInfoThreads[j - 2] = new Thread(myRunnableStatInfos[j - 2]);
         statInfoThreads[j - 2].start();
       }
@@ -201,9 +208,24 @@ public class Calculations {
 
 class StatInfo implements Runnable {
 
+  /**
+   * results - array of all calculations.
+   */
   private String[] results = new String[7];
+
+  /**
+   * data - incoming data for calculations.
+   */
   private List<String> data;
+
+  /**
+   * well - current well column name.
+   */
   private String well;
+
+  /**
+   * statum - current stratum column name.
+   */
   private String stratum;
 
   public String[] getResults() {
@@ -212,14 +234,14 @@ class StatInfo implements Runnable {
 
   /**
    * Runnable setter for variables.
-   * @param data    input data for thread.
-   * @param well    input well name for thread.
-   * @param stratum input well name for stratum.
+   * @param dataIn    input data for thread.
+   * @param wellIn    input well name for thread.
+   * @param stratumIn input well name for stratum.
    */
-  public StatInfo(List<String> data, String well, String stratum) {
-    this.data = data;
-    this.well = well;
-    this.stratum = stratum;
+  public StatInfo(final List<String> dataIn, final String wellIn, final String stratumIn) {
+    this.data = dataIn;
+    this.well = wellIn;
+    this.stratum = stratumIn;
   }
 
   /**
@@ -229,16 +251,22 @@ class StatInfo implements Runnable {
     double tmpValue = Double.valueOf(data.get(1));
     double minValue = 0;
     double maxValue = 0;
-    double sumValue = 0;
-    double median;
+    BigDecimal sumValue = BigDecimal.valueOf(0);
+    BigDecimal median = BigDecimal.valueOf(0);
     int count = 0;
 
     for (int i = 1; i < data.size(); i++) {
-      count++;
-      tmpValue = Double.valueOf(data.get(i));
-      sumValue += tmpValue;
+      if (data.get(i).replace(" ", "").equals("0")) {
+        continue;
+      }
 
-      if (tmpValue != 0 && tmpValue < minValue || minValue == 0) {
+      count++;
+
+      tmpValue = Double.valueOf(data.get(i));
+
+      sumValue = sumValue.add(BigDecimal.valueOf(tmpValue));
+
+      if (tmpValue < minValue || minValue == 0) {
         minValue = tmpValue;
       }
 
@@ -247,16 +275,42 @@ class StatInfo implements Runnable {
       }
     }
 
-    median = (sumValue != 0 ? (sumValue / count) : sumValue);
+    median = (count != 0 ? (sumValue.divide(BigDecimal.valueOf(count), RoundingMode.HALF_UP)) : BigDecimal.valueOf(0));
 
     results[0] = well;
     results[1] = stratum;
+
     results[2] = String.valueOf(median);
-    results[3] = String.valueOf(minValue);
-    results[4] = String.valueOf(maxValue);
+    results[3] = (minValue != 0.0 ? String.valueOf(minValue) : "0");
+    results[4] = (maxValue != 0.0 ? String.valueOf(maxValue) : "0");
     results[5] = String.valueOf(sumValue);
+
+    String[] tempResults = new String[4];
+    for (int i = 0; i < tempResults.length; i++) {
+      tempResults[i] = results[i + 2];
+
+      String tempStringValue = tempResults[i];
+      char[] tempStringChars = tempStringValue.toCharArray();
+      int maxLength = tempStringChars.length;
+
+      if (maxLength < 2) {
+        continue;
+      }
+
+
+      if (valueInCharArray(tempStringChars, maxLength)) {
+        results[i + 2] = tempStringValue.replace(".0", "");
+      } else {
+        results[i + 2] = tempStringValue;
+      }
+    }
 
     String column = data.get(0);
     results[6] = column;
+  }
+
+  private static boolean valueInCharArray(final char[] charArray, final int length) {
+    return (String.valueOf(charArray[length - 2]).equals(".")
+            && String.valueOf(charArray[length - 1]).equals("0"));
   }
 }
