@@ -5,8 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -251,9 +251,11 @@ class StatInfo implements Runnable {
     double tmpValue = Double.valueOf(data.get(1));
     double minValue = 0;
     double maxValue = 0;
-    BigDecimal sumValue = BigDecimal.valueOf(0);
-    BigDecimal median = BigDecimal.valueOf(0);
+    double sumValue = 0;
+    double median = 0;
     int count = 0;
+    int dotMaxLength = 0;
+    int dotTempValue = 0;
 
     for (int i = 1; i < data.size(); i++) {
       if (data.get(i).replace(" ", "").equals("0")) {
@@ -262,9 +264,15 @@ class StatInfo implements Runnable {
 
       count++;
 
+      dotTempValue = dotValueLength(String.valueOf(data.get(i)));
+
+      if (dotMaxLength < dotTempValue) {
+        dotMaxLength = dotTempValue;
+      }
+
       tmpValue = Double.valueOf(data.get(i));
 
-      sumValue = sumValue.add(BigDecimal.valueOf(tmpValue));
+      sumValue += tmpValue;
 
       if (tmpValue < minValue || minValue == 0) {
         minValue = tmpValue;
@@ -275,15 +283,19 @@ class StatInfo implements Runnable {
       }
     }
 
-    median = (count != 0 ? (sumValue.divide(BigDecimal.valueOf(count), RoundingMode.HALF_UP)) : BigDecimal.valueOf(0));
+    median = (count != 0 ? (sumValue / count) : 0);
 
     results[0] = well;
     results[1] = stratum;
 
-    results[2] = String.valueOf(median);
-    results[3] = (minValue != 0.0 ? String.valueOf(minValue) : "0");
-    results[4] = (maxValue != 0.0 ? String.valueOf(maxValue) : "0");
-    results[5] = String.valueOf(sumValue);
+    DecimalFormat df = new DecimalFormat(setPattern(dotMaxLength));
+    df.setRoundingMode(RoundingMode.HALF_UP);
+    results[2] = zeroCheckReplace(df.format(median));
+
+    results[3] = zeroCheckReplace(String.valueOf(minValue));
+    results[4] = zeroCheckReplace(String.valueOf(maxValue));
+
+    results[5] = zeroCheckReplace(df.format(sumValue));
 
     String[] tempResults = new String[4];
     for (int i = 0; i < tempResults.length; i++) {
@@ -306,6 +318,30 @@ class StatInfo implements Runnable {
 
     String column = data.get(0);
     results[6] = column;
+  }
+
+  private static String zeroCheckReplace(final String value) {
+    if (!value.equals("0.0") && !value.equals("0,")) {
+      return value;
+    } else {
+      return "0";
+    }
+  }
+
+  private static String setPattern(final int value) {
+    String pattern = "#.";
+
+    for (int i = 0; i < value; i++) {
+      pattern += "#";
+    }
+
+    return pattern;
+  }
+
+  private static int dotValueLength(final String value) {
+    int dotLength = value.length() - (value.indexOf(".") + 1);
+
+    return dotLength;
   }
 
   private static boolean valueInCharArray(final char[] charArray, final int length) {
