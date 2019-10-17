@@ -122,7 +122,7 @@ public class Calculations {
    * @param dataOut input array of data.
    */
   private static void arrayToCsv(final String[] dataOut) {
-    BufferedWriter br;
+    BufferedWriter bw = null;
     String[] headers = {"well", "stratum", "median", "minValue", "maxValue", "sumValue", "column"};
     File csvFileOut = new File(csvOutFileName);
     boolean headersWrite = false;
@@ -133,26 +133,36 @@ public class Calculations {
 
     String delimiter = ";";
     try {
-      br = new BufferedWriter(new FileWriter(csvOutFileName, true));
+      bw = new BufferedWriter(new FileWriter(csvOutFileName, true));
 
       if (headersWrite) {
         for (int i = 0; i < headers.length; i++) {
           delimiter = (i == headers.length - 1) ? "\r\n" : delimiter;
-          br.write(headers[i] + delimiter);
+          bw.write(headers[i] + delimiter);
         }
       }
 
       delimiter = ";";
       for (int i = 0; i < dataOut.length; i++) {
         delimiter = (i == dataOut.length - 1) ? "\r\n" : delimiter;
-        br.write(dataOut[i].replace(".", ",") + delimiter);
+        bw.write(dataOut[i].replace(".", ",") + delimiter);
       }
 
-      br.close();
-    } catch (FileNotFoundException e) {
+      bw.close();
+    } catch (Exception e) {
+      System.out.println("Ошибка записи или файл не найден.");
       e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+      System.exit(1);
+    } finally {
+      if (bw != null) {
+        try {
+          bw.close();
+        } catch (IOException e) {
+          System.out.println("Ошибка закрытия буфера записи.");
+          e.printStackTrace();
+          System.exit(1);
+        }
+      }
     }
   }
 
@@ -162,7 +172,7 @@ public class Calculations {
    * @return array2d in variable.
    */
   private static String[][] csvToArray2d(final String path) {
-    BufferedReader br;
+    BufferedReader br = null;
     String line;
     String delimiter = ";";
     List<List<String>> list = new ArrayList<List<String>>();
@@ -185,11 +195,20 @@ public class Calculations {
         }
       }
 
-      br.close();
-    } catch (FileNotFoundException e) {
+    } catch (Exception e) {
+      System.out.println("Ошибка чтения или файл не найден.");
       e.printStackTrace();
-    } catch (IOException e) {
-      e.printStackTrace();
+      System.exit(1);
+    } finally {
+      if (br != null) {
+        try {
+          br.close();
+        } catch (IOException e) {
+          System.out.println("Ошибка закрытия буфера чтения.");
+          e.printStackTrace();
+          System.exit(1);
+        }
+      }
     }
 
     int cols = list.size();
