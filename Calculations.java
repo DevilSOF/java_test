@@ -1,15 +1,11 @@
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class Calculations {
 
@@ -64,39 +60,47 @@ public class Calculations {
     int rows = csvData[0].length;
     int cols = csvData.length;
     long timerStart = System.currentTimeMillis();
-    List<String> uniquePairs = new ArrayList<String>();
+    String[] uniquePairs = new String[rows];
 
-    for (int i = 1; i < rows; i++) {
-      uniquePairs.add(csvData[0][i] + csvData[1][i]);
-    }
+     for (int i = 0; i < rows; i++) {
+      uniquePairs[i] = csvData[0][i] + csvData[1][i];
+     }
 
-    uniquePairs = uniquePairs.stream().distinct().collect(Collectors.toList());
+    uniquePairs = uniqueArray(uniquePairs);
 
     int mm  = 0;
-    for (String pair : uniquePairs) {
+    for (int n = 1; n < uniquePairs.length; n++) {
+      String[][] tmpData;
 
-      List<List<String>> tmpData = new ArrayList<List<String>>();
-
-      for (int i = 0; i < cols; i++) {
-        List<String> subList = new ArrayList<String>();
-        subList.add(csvData[i][0]);
-        tmpData.add(subList);
-      }
-
+      int tmpCount = 0;
       for (int i = 1; i < rows; i++) {
-        if (pair.equals(csvData[0][i] + csvData[1][i])) {
-          for (int j = 0; j < cols; j++) {
-            tmpData.get(j).add(csvData[j][i]);
-          }
+        if (uniquePairs[n].equals(csvData[0][i] + csvData[1][i])) {
+            tmpCount++;
         }
       }
 
-      int tmpCols = tmpData.size();
+      tmpData = new String[cols][tmpCount + 1];
+
+        for (int k = 0; k < cols; k++) {
+          tmpData[k][0] = csvData[k][0];
+        }
+
+        int tmpArrayRow = 1;
+      for (int i = 1; i < rows; i++) {
+        if (uniquePairs[n].equals(csvData[0][i] + csvData[1][i])) {
+          for (int j = 0; j < cols; j++) {
+            tmpData[j][tmpArrayRow] = csvData[j][i];
+          }
+          tmpArrayRow++;
+        }
+      }
+
+      int tmpCols = tmpData.length;
 
       Thread[] statInfoThreads = new Thread[5];
       StatInfo[] myRunnableStatInfos = new StatInfo[5];
       for (int j = 2; j < tmpCols; j++) {
-        myRunnableStatInfos[j - 2] = new StatInfo(tmpData.get(j), tmpData.get(0).get(1), tmpData.get(1).get(1));
+        myRunnableStatInfos[j - 2] = new StatInfo(tmpData[j], tmpData[0][1], tmpData[1][1]);
         statInfoThreads[j - 2] = new Thread(myRunnableStatInfos[j - 2]);
         statInfoThreads[j - 2].start();
       }
@@ -115,6 +119,36 @@ public class Calculations {
 
     long timerEnd = System.currentTimeMillis();
     System.out.println("ms = " + (timerEnd - timerStart));
+  }
+
+  public static boolean isUnique(String[] array, String num) {
+    for (int i = 0; i < array.length; i++) {
+      if (array[i].equals(num)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static String[] uniqueArray(final String[] array) {
+    String[] elements = new String[array.length];
+    for (int i = 0; i < elements.length; i++) {
+      elements[i] = "";
+    }
+
+    int count = 0;
+    for (int i = 0; i < array.length; i++) {
+      if (isUnique(elements, array[i]))
+        elements[count++] = array[i];
+    }
+
+    String[] uniqueArray = new String[count];
+
+    for (int i = 0; i < uniqueArray.length; i++) {
+      uniqueArray[i] = elements[i];
+    }
+
+    return uniqueArray;
   }
 
   /**
@@ -150,7 +184,7 @@ public class Calculations {
 
       bw.close();
     } catch (Exception e) {
-      System.out.println("Ошибка записи или файл не найден.");
+      System.out.println("Write error or file not found.");
       e.printStackTrace();
       System.exit(1);
     } finally {
@@ -158,12 +192,18 @@ public class Calculations {
         try {
           bw.close();
         } catch (IOException e) {
-          System.out.println("Ошибка закрытия буфера записи.");
+          System.out.println("Reader close error.");
           e.printStackTrace();
           System.exit(1);
         }
       }
     }
+  }
+
+  private static String[][] inputArray;
+
+  private static void setInputArraySize(final int[] value) {
+    inputArray = new String[value[0]][value[1]];
   }
 
   /**
@@ -175,28 +215,26 @@ public class Calculations {
     BufferedReader br = null;
     String line;
     String delimiter = ";";
-    List<List<String>> list = new ArrayList<List<String>>();
 
+    setInputArraySize(takeArraySize(path, delimiter));
+
+    int count = 0;
     try {
       br = new BufferedReader(new FileReader(path));
-      line = br.readLine();
-      String[] headers = line.split(delimiter);
 
-      for (String header : headers) {
-        List<String> subList = new ArrayList<String>();
-        subList.add(header);
-        list.add(subList);
+      line = br.readLine();
+      if (line != null) {
+        setArrayVariables(line, delimiter, count);
+        count++;
       }
 
       while ((line = br.readLine()) != null) {
-        String[] elems = line.split(";");
-        for (int i = 0; i < elems.length; i++) {
-          list.get(i).add(elems[i]);
-        }
+        setArrayVariables(line, delimiter, count);
+        count++;
       }
 
     } catch (Exception e) {
-      System.out.println("Ошибка чтения или файл не найден.");
+      System.out.println("Read error or file not found.");
       e.printStackTrace();
       System.exit(1);
     } finally {
@@ -204,25 +242,67 @@ public class Calculations {
         try {
           br.close();
         } catch (IOException e) {
-          System.out.println("Ошибка закрытия буфера чтения.");
+          System.out.println("Reader close error.");
           e.printStackTrace();
           System.exit(1);
         }
       }
     }
 
-    int cols = list.size();
-    int rows = list.get(0).size();
-    String[][] array2d = new String[cols][rows];
+    return inputArray;
+  }
 
-    for (int col = 0; col < cols; col++) {
-      for (int row = 0; row < rows; row++) {
-        array2d[col][row] = list.get(col).get(row).replace(",", ".");
+  private static void setArrayVariables(final String line, String delimiter, int count) {
+    String[] elements = line.split(delimiter);
+
+    for (int i = 0; i < elements.length; i++) {
+      inputArray[i][count] = elements[i].replace(",", ".");
+    }
+  }
+
+  private static int[] takeArraySize(final String path, final String delimiter) {
+    BufferedReader br = null;
+    int size[] = {0, 0};
+    String line;
+
+    try {
+      br = new BufferedReader(new FileReader(path));
+
+      line = br.readLine();
+
+      if (line != null) {
+        String[] elements = line.split(delimiter);
+
+        for (int i = 0; i < elements.length; i++) {
+          size[0]++;
+        }
+
+        size[1]++;
+      }
+
+      while ((line = br.readLine()) != null) {
+        size[1]++;
+      }
+
+    } catch (Exception e) {
+      System.out.println("Read error or file not found (array length).");
+      e.printStackTrace();
+      System.exit(1);
+    } finally {
+      if (br != null) {
+        try {
+          br.close();
+        } catch (IOException e) {
+          System.out.println("Reader close error (array length).");
+          e.printStackTrace();
+          System.exit(1);
+        }
       }
     }
 
-    return array2d;
+    return size;
   }
+
 }
 
 class StatInfo implements Runnable {
@@ -235,7 +315,8 @@ class StatInfo implements Runnable {
   /**
    * data - incoming data for calculations.
    */
-  private List<String> data;
+  // private List<String> data;
+  private String[] data;
 
   /**
    * well - current well column name.
@@ -257,7 +338,7 @@ class StatInfo implements Runnable {
    * @param wellIn    input well name for thread.
    * @param stratumIn input well name for stratum.
    */
-  public StatInfo(final List<String> dataIn, final String wellIn, final String stratumIn) {
+    public StatInfo(final String[] dataIn, final String wellIn, final String stratumIn) {
     this.data = dataIn;
     this.well = wellIn;
     this.stratum = stratumIn;
@@ -267,7 +348,7 @@ class StatInfo implements Runnable {
    * procedure for median, min, max, sum metods.
    */
   public void run() {
-    double tmpValue = Double.valueOf(data.get(1));
+    double tmpValue = Double.valueOf(data[1]);
     double minValue = 0;
     double maxValue = 0;
     double sumValue = 0;
@@ -276,20 +357,20 @@ class StatInfo implements Runnable {
     int dotMaxLength = 0;
     int dotTempValue = 0;
 
-    for (int i = 1; i < data.size(); i++) {
-      if (data.get(i).replace(" ", "").equals("0")) {
+      for (int i = 1; i < data.length; i++) {
+        if (data[i].replace(" ", "").equals("0")) {
         continue;
       }
 
       count++;
 
-      dotTempValue = dotValueLength(String.valueOf(data.get(i)));
+      dotTempValue = dotValueLength(String.valueOf(data[i]));
 
       if (dotMaxLength < dotTempValue) {
         dotMaxLength = dotTempValue;
       }
 
-      tmpValue = Double.valueOf(data.get(i));
+      tmpValue = Double.valueOf(data[i]);
 
       sumValue += tmpValue;
 
@@ -335,8 +416,9 @@ class StatInfo implements Runnable {
       }
     }
 
-    String column = data.get(0);
+    String column = data[0];
     results[6] = column;
+
   }
 
   private static String zeroCheckReplace(final String value) {
