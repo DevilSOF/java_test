@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class Calculations {
 
@@ -62,12 +64,13 @@ public class Calculations {
     long timerStart = System.currentTimeMillis();
     String[] uniquePairs = new String[rows];
 
-     for (int i = 0; i < rows; i++) {
+
+    for (int i = 0; i < rows; i++) {
       uniquePairs[i] = csvData[0][i] + csvData[1][i];
-     }
+    }
 
-    uniquePairs = uniqueArray(uniquePairs);
-
+    uniquePairs = uniqueArrayHash(uniquePairs);
+    System.out.println(System.currentTimeMillis() - timerStart + " ms unique");
     int mm  = 0;
     for (int n = 1; n < uniquePairs.length; n++) {
       String[][] tmpData;
@@ -75,17 +78,17 @@ public class Calculations {
       int tmpCount = 0;
       for (int i = 1; i < rows; i++) {
         if (uniquePairs[n].equals(csvData[0][i] + csvData[1][i])) {
-            tmpCount++;
+          tmpCount++;
         }
       }
 
       tmpData = new String[cols][tmpCount + 1];
 
-        for (int k = 0; k < cols; k++) {
-          tmpData[k][0] = csvData[k][0];
-        }
+      for (int k = 0; k < cols; k++) {
+        tmpData[k][0] = csvData[k][0];
+      }
 
-        int tmpArrayRow = 1;
+      int tmpArrayRow = 1;
       for (int i = 1; i < rows; i++) {
         if (uniquePairs[n].equals(csvData[0][i] + csvData[1][i])) {
           for (int j = 0; j < cols; j++) {
@@ -121,7 +124,7 @@ public class Calculations {
     System.out.println("ms = " + (timerEnd - timerStart));
   }
 
-  public static boolean isUnique(String[] array, String num) {
+  private static boolean isUnique(String[] array, String num) {
     for (int i = 0; i < array.length; i++) {
       if (array[i].equals(num)) {
         return false;
@@ -130,16 +133,44 @@ public class Calculations {
     return true;
   }
 
-  public static String[] uniqueArray(final String[] array) {
-    String[] elements = new String[array.length];
+  /**
+   * Tested results 9-20 ms.
+   * @param arrays - input array.
+   * @return arraysToString.
+   */
+  private static String[] uniqueArrayHash(final String[] arrays) {
+    Set<String> uniqueArray = new LinkedHashSet<String>();
+
+    for (String array : arrays) {
+      uniqueArray.add(array);
+    }
+
+    String[] arraysToString = new String[uniqueArray.size()];
+
+    int count = 0;
+    for (String unique : uniqueArray) {
+      arraysToString[count++] = unique;
+    }
+
+    return arraysToString;
+  }
+
+  /**
+   * Very slow solution tested 50-70 ms vs uniqueArrayHash 10-20 ms.
+   * @param arrays - input massive.
+   * @return uniqueArray.
+   */
+  private static String[] uniqueArray(final String[] arrays) {
+    String[] elements = new String[arrays.length];
     for (int i = 0; i < elements.length; i++) {
       elements[i] = "";
     }
 
     int count = 0;
-    for (int i = 0; i < array.length; i++) {
-      if (isUnique(elements, array[i]))
-        elements[count++] = array[i];
+    for (int i = 0; i < arrays.length; i++) {
+      if (isUnique(elements, arrays[i])) {
+        elements[count++] = arrays[i];
+      }
     }
 
     String[] uniqueArray = new String[count];
