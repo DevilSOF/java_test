@@ -293,7 +293,7 @@ public class Calculations {
 
   private static int[] takeArraySize(final String path, final String delimiter) {
     BufferedReader br = null;
-    int size[] = {0, 0};
+    int[] size = {0, 0};
     String line;
 
     try {
@@ -369,7 +369,7 @@ class StatInfo implements Runnable {
    * @param wellIn    input well name for thread.
    * @param stratumIn input well name for stratum.
    */
-    public StatInfo(final String[] dataIn, final String wellIn, final String stratumIn) {
+  public StatInfo(final String[] dataIn, final String wellIn, final String stratumIn) {
     this.data = dataIn;
     this.well = wellIn;
     this.stratum = stratumIn;
@@ -388,8 +388,8 @@ class StatInfo implements Runnable {
     int dotMaxLength = 0;
     int dotTempValue = 0;
 
-      for (int i = 1; i < data.length; i++) {
-        if (data[i].replace(" ", "").equals("0")) {
+    for (int i = 1; i < data.length; i++) {
+      if (data[i].replace(" ", "").equals("0")) {
         continue;
       }
 
