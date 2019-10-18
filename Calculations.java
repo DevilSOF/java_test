@@ -138,6 +138,7 @@ public class Calculations {
 
     }
 
+    // Without this part ~50-100 ms (first run) via 8 thread 4.7 GHz CPU
     for (Thread thread : statInfoThreads) {
       thread.join();
     }
@@ -146,6 +147,7 @@ public class Calculations {
       String[] push = (String[]) output;
       arrayToCsv(push);
     }
+    // slow part end.
 
     long timerEnd = System.currentTimeMillis();
     System.out.println("\nms = " + (timerEnd - timerStart));
@@ -457,11 +459,11 @@ class StatInfo implements Runnable {
         }
       }
 
-       for (int j = 2; j < Calculations.csvDatacols; j++) {
-         String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
-         int arrayPosition = arrayID + (partsCount * threadID * 5) - ((partsCount - Calculations.shift) * threadID * 5);
-         Calculations.dataOutput[arrayPosition] = res;
-         arrayID++;
+      for (int j = 2; j < Calculations.csvDatacols; j++) {
+        String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
+        int arrayPosition = arrayID + (partsCount * threadID * 5) - ((partsCount - Calculations.shift) * threadID * 5);
+        Calculations.dataOutput[arrayPosition] = res;
+        arrayID++;
       }
       mm++;
     }
