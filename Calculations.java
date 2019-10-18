@@ -52,6 +52,11 @@ public class Calculations {
   private static String csvOutFileName;
 
   /**
+   * Time when main calculations of program start.
+   */
+  public static long timerStart;
+
+  /**
    * Main program.
    *
    * @param args can be add two in and out files with .csv extensions.
@@ -92,7 +97,7 @@ public class Calculations {
     csvDatarows = csvData[0].length;
     csvDatacols = csvData.length;
 
-    long timerStart = System.currentTimeMillis();
+    timerStart = System.currentTimeMillis();
     uniquePairs = new String[csvDatarows];
 
 
@@ -138,7 +143,8 @@ public class Calculations {
 
     }
 
-    // Without this part ~50-100 ms (first run) via 8 thread 4.7 GHz CPU
+    System.out.println("\nThreads start done, ms = " + (System.currentTimeMillis() - timerStart) + ", data write next");
+
     for (Thread thread : statInfoThreads) {
       thread.join();
     }
@@ -147,10 +153,8 @@ public class Calculations {
       String[] push = (String[]) output;
       arrayToCsv(push);
     }
-    // slow part end.
 
-    long timerEnd = System.currentTimeMillis();
-    System.out.println("\nms = " + (timerEnd - timerStart));
+    System.out.println("\nAll threads and writes are done, ms = " + (System.currentTimeMillis() - timerStart));
   }
 
   /**
@@ -467,7 +471,8 @@ class StatInfo implements Runnable {
       }
       mm++;
     }
-    System.out.println("\n" + mm + " all massives in Thread-" + Thread.currentThread().getName());
+    System.out.println("\n" + mm + " all arrays in Thread-" + Thread.currentThread().getName()
+                       + ", ms done - " + (System.currentTimeMillis() - Calculations.timerStart));
   }
 
   /**
