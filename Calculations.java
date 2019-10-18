@@ -138,6 +138,7 @@ public class Calculations {
 
     }
 
+    // Without this part ~50-100 ms (first run) or faster (8 threads CPU 4,7 GHz)
     for (Thread thread : statInfoThreads) {
       thread.join();
     }
@@ -146,6 +147,7 @@ public class Calculations {
       String[] push = (String[]) output;
       arrayToCsv(push);
     }
+    // end slow part
 
     long timerEnd = System.currentTimeMillis();
     System.out.println("\nms = " + (timerEnd - timerStart));
@@ -457,16 +459,17 @@ class StatInfo implements Runnable {
         }
       }
 
-       for (int j = 2; j < Calculations.csvDatacols; j++) {
-         String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
-         int arrayPosition = arrayID + (partsCount * threadID * 5) - ((partsCount - Calculations.shift) * threadID * 5);
-         Calculations.dataOutput[arrayPosition] = res;
-         arrayID++;
+      for (int j = 2; j < Calculations.csvDatacols; j++) {
+        String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
+        int arrayPosition = arrayID + (partsCount * threadID * 5) - ((partsCount - Calculations.shift) * threadID * 5);
+        Calculations.dataOutput[arrayPosition] = res;
+        arrayID++;
       }
       mm++;
     }
     System.out.println("\n" + mm + " all massives in Thread-" + Thread.currentThread().getName());
   }
+
 
   /**
    * Calculations for array
