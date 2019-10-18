@@ -12,10 +12,34 @@ import java.util.Set;
 public class Calculations {
 
   /**
-   * csvData - temporary variable.
+   * dataOutput - store for arrays from threads calcultations.
    */
-  private static String[][] csvData;
+  public static Object[] dataOutput;
 
+  /**
+   * csvData - array from csv file.
+   */
+  public static String[][] csvData;
+
+  /**
+   * csvDatarows - rows count of csv array.
+   */
+  public static int csvDatarows;
+
+  /**
+   * csvDatacols - columns count of csv array.
+   */
+  public static int csvDatacols;
+
+  /**
+   * uniquePairs - array of unique pairs A+B columns.
+   */
+  public static String[] uniquePairs;
+
+  /**
+   * cpu - count for Threads.
+   */
+  public static int cpu = Runtime.getRuntime().availableProcessors();
   /**
    * csvOutFileName - out csv file name variable.
    */
@@ -59,74 +83,77 @@ public class Calculations {
       csvFileOut.delete();
     }
 
-    int rows = csvData[0].length;
-    int cols = csvData.length;
+    csvDatarows = csvData[0].length;
+    csvDatacols = csvData.length;
+
     long timerStart = System.currentTimeMillis();
-    String[] uniquePairs = new String[rows];
+    uniquePairs = new String[csvDatarows];
 
 
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i < csvDatarows; i++) {
       uniquePairs[i] = csvData[0][i] + csvData[1][i];
     }
 
     uniquePairs = uniqueArrayHash(uniquePairs);
+
     System.out.println(System.currentTimeMillis() - timerStart + " ms unique");
-    int mm  = 0;
-    for (int n = 1; n < uniquePairs.length; n++) {
-      String[][] tmpData;
 
-      int tmpCount = 0;
-      for (int i = 1; i < rows; i++) {
-        if (uniquePairs[n].equals(csvData[0][i] + csvData[1][i])) {
-          tmpCount++;
-        }
-      }
+    System.out.println("\n" + cpu + " cpu avaliable\n");
 
-      tmpData = new String[cols][tmpCount + 1];
+    int uniqueLength = uniquePairs.length - 1;
 
-      for (int k = 0; k < cols; k++) {
-        tmpData[k][0] = csvData[k][0];
-      }
-
-      int tmpArrayRow = 1;
-      for (int i = 1; i < rows; i++) {
-        if (uniquePairs[n].equals(csvData[0][i] + csvData[1][i])) {
-          for (int j = 0; j < cols; j++) {
-            tmpData[j][tmpArrayRow] = csvData[j][i];
-          }
-          tmpArrayRow++;
-        }
-      }
-
-      int tmpCols = tmpData.length;
-
-      Thread[] statInfoThreads = new Thread[5];
-      StatInfo[] myRunnableStatInfos = new StatInfo[5];
-      for (int j = 2; j < tmpCols; j++) {
-        myRunnableStatInfos[j - 2] = new StatInfo(tmpData[j], tmpData[0][1], tmpData[1][1]);
-        statInfoThreads[j - 2] = new Thread(myRunnableStatInfos[j - 2]);
-        statInfoThreads[j - 2].start();
-      }
-
-      for (Thread thread : statInfoThreads) {
-        thread.join();
-      }
-
-      for (StatInfo myRunnableStatInfo : myRunnableStatInfos) {
-        arrayToCsv(myRunnableStatInfo.getResults());
-      }
-      mm++;
+    if (uniqueLength <= 0) {
+      System.out.println("Unique array is Null, exit.");
+      System.exit(1);
     }
 
-    System.out.println("\n" + mm + " all massives");
+    int shift = (uniqueLength) / cpu;
+    int start = 1;
+    int end = shift;
+
+    dataOutput = new Object[uniqueLength * 5];
+
+    Thread[] statInfoThreads = new Thread[cpu];
+    StatInfo[] myRunnableStatInfos = new StatInfo[cpu];
+    for (int i = 0; i < cpu; i++) {
+      if (i == (cpu - 1)) {
+        end += (uniqueLength - end);
+      }
+
+      System.out.println(start + " - start; " + end + " end;");
+
+      myRunnableStatInfos[i] = new StatInfo(start, end);
+      statInfoThreads[i] = new Thread(myRunnableStatInfos[i]);
+      statInfoThreads[i].setName(String.valueOf(i));
+      statInfoThreads[i].start();
+
+      start += shift;
+      end += shift;
+
+    }
+
+    for (Thread thread : statInfoThreads) {
+      thread.join();
+    }
+
+    for (Object output : dataOutput) {
+      String[] push = (String[]) output;
+      arrayToCsv(push);
+    }
 
     long timerEnd = System.currentTimeMillis();
-    System.out.println("ms = " + (timerEnd - timerStart));
+    System.out.println("\nms = " + (timerEnd - timerStart));
   }
 
-  private static boolean isUnique(String[] array, String num) {
+  /**
+   * method uses in uniqueArray.
+   * @param array - array which need to compare.
+   * @param value - compare value.
+   * @return boolean value.
+   */
+  private static boolean isUnique(String[] array, String value) {
     for (int i = 0; i < array.length; i++) {
-      if (array[i].equals(num)) {
+      if (array[i].equals(value)) {
         return false;
       }
     }
@@ -231,14 +258,21 @@ public class Calculations {
     }
   }
 
+  /**
+   * inputArray - temporary varivable for array.
+   */
   private static String[][] inputArray;
 
+  /**
+   * Dimension setter for array.
+   * @param value - size of dimension.
+   */
   private static void setInputArraySize(final int[] value) {
     inputArray = new String[value[0]][value[1]];
   }
 
   /**
-   * write csv file to array 2D.
+   * Read csv file to array 2D.
    * @param path path to csv file.
    * @return array2d in variable.
    */
@@ -283,7 +317,13 @@ public class Calculations {
     return inputArray;
   }
 
-  private static void setArrayVariables(final String line, String delimiter, int count) {
+  /**
+   * Variables setter for inputArray.
+   * @param line - elements.
+   * @param delimiter - line delimeter.
+   * @param count - array row.
+   */
+  private static void setArrayVariables(final String line, final String delimiter, final int count) {
     String[] elements = line.split(delimiter);
 
     for (int i = 0; i < elements.length; i++) {
@@ -291,6 +331,12 @@ public class Calculations {
     }
   }
 
+  /**
+   * Get dimension of file.
+   * @param path - file path.
+   * @param delimiter - line delimiter.
+   * @return int[] - return array of dimension.
+   */
   private static int[] takeArraySize(final String path, final String delimiter) {
     BufferedReader br = null;
     int[] size = {0, 0};
@@ -339,46 +385,94 @@ public class Calculations {
 class StatInfo implements Runnable {
 
   /**
-   * results - array of all calculations.
+   * start - value for parse uniqueArray.
    */
-  private String[] results = new String[7];
+  private int start;
 
   /**
-   * data - incoming data for calculations.
+   * end - value for parse uniqueArray.
    */
-  // private List<String> data;
-  private String[] data;
-
-  /**
-   * well - current well column name.
-   */
-  private String well;
-
-  /**
-   * statum - current stratum column name.
-   */
-  private String stratum;
-
-  public String[] getResults() {
-    return results;
-  }
+  private int end;
 
   /**
    * Runnable setter for variables.
-   * @param dataIn    input data for thread.
-   * @param wellIn    input well name for thread.
-   * @param stratumIn input well name for stratum.
+   * @param inStart Setter start variable for for parse uniqueArray.
+   * @param inEnd Setter end variable for for parse uniqueArray.
    */
-  public StatInfo(final String[] dataIn, final String wellIn, final String stratumIn) {
-    this.data = dataIn;
-    this.well = wellIn;
-    this.stratum = stratumIn;
+  public StatInfo(final int inStart, final int inEnd) {
+    start = inStart;
+    end = inEnd;
   }
 
   /**
-   * procedure for median, min, max, sum metods.
+   * main calculations starter.
    */
   public void run() {
+    separateArray(start, end);
+  }
+
+  /**
+   * Separate array of uniqueArray for Thread.
+   * @param startIn - start value.
+   * @param endIn - end value.
+   */
+  private static void separateArray(final int startIn, final int endIn) {
+    int arrayID = 0;
+    int start = startIn;
+    int end = endIn;
+
+    int threadID = Integer.valueOf(Thread.currentThread().getName());
+    int partsCount = end - start + 1;
+
+    int mm  = 0;
+    for (int n = start; n <= end; n++) {
+      String[][] tmpData;
+
+      int tmpCount = 0;
+      for (int i = 1; i < Calculations.csvDatarows; i++) {
+        if (Calculations.uniquePairs[n].equals(Calculations.csvData[0][i] + Calculations.csvData[1][i])) {
+          tmpCount++;
+        }
+      }
+
+      tmpData = new String[Calculations.csvDatacols][tmpCount + 1];
+
+      for (int k = 0; k < Calculations.csvDatacols; k++) {
+        tmpData[k][0] = Calculations.csvData[k][0];
+      }
+
+      int tmpArrayRow = 1;
+      for (int i = 1; i < Calculations.csvDatarows; i++) {
+        if (Calculations.uniquePairs[n].equals(Calculations.csvData[0][i] + Calculations.csvData[1][i])) {
+          for (int j = 0; j < Calculations.csvDatacols; j++) {
+            tmpData[j][tmpArrayRow] = Calculations.csvData[j][i];
+          }
+          tmpArrayRow++;
+        }
+      }
+
+       for (int j = 2; j < Calculations.csvDatacols; j++) {
+         String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
+         Calculations.dataOutput[arrayID + (partsCount * threadID * 5)] = res;
+         arrayID++;
+      }
+      mm++;
+    }
+    System.out.println("\n" + mm + " all massives in Thread-" + Thread.currentThread().getName());
+  }
+
+  /**
+   * Calculations for array
+   * @param dataIn - array data.
+   * @param wellIn - name of well
+   * @param stratumIn - name of stratum.
+   * @return String[] - array of result.
+   */
+  private static String[] makeCalculations(final String[] dataIn, final String wellIn, final String stratumIn) {
+    String[] data = dataIn;
+    String well = wellIn;
+    String stratum = stratumIn;
+
     double tmpValue = Double.valueOf(data[1]);
     double minValue = 0;
     double maxValue = 0;
@@ -416,6 +510,8 @@ class StatInfo implements Runnable {
 
     median = (count != 0 ? (sumValue / count) : 0);
 
+    String[] results = new String[7];
+
     results[0] = well;
     results[1] = stratum;
 
@@ -450,6 +546,7 @@ class StatInfo implements Runnable {
     String column = data[0];
     results[6] = column;
 
+    return results;
   }
 
   private static String zeroCheckReplace(final String value) {
