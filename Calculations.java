@@ -460,7 +460,7 @@ class StatInfo implements Runnable {
        for (int j = 2; j < Calculations.csvDatacols; j++) {
          String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
          int arrayPosition = arrayID + (partsCount * threadID * 5) - ((partsCount - Calculations.shift) * threadID * 5);
-         Calculations.dataOutput[arrayID + (partsCount * threadID * 5)] = res;
+         Calculations.dataOutput[arrayPosition] = res;
          arrayID++;
       }
       mm++;
