@@ -37,9 +37,15 @@ public class Calculations {
   public static String[] uniquePairs;
 
   /**
-   * cpu - count for Threads.
+   * cpu - count for Threads. Can change manually.
    */
   public static int cpu = Runtime.getRuntime().availableProcessors();
+
+  /**
+   * Array split parts.
+   */
+  public static int shift;
+
   /**
    * csvOutFileName - out csv file name variable.
    */
@@ -107,7 +113,8 @@ public class Calculations {
       System.exit(1);
     }
 
-    int shift = (uniqueLength) / cpu;
+
+    shift = (uniqueLength) / cpu;
     int start = 1;
     int end = shift;
 
@@ -453,7 +460,8 @@ class StatInfo implements Runnable {
 
        for (int j = 2; j < Calculations.csvDatacols; j++) {
          String[] res = makeCalculations(tmpData[j], tmpData[0][1], tmpData[1][1]);
-         Calculations.dataOutput[arrayID + (partsCount * threadID * 5)] = res;
+         int arrayPosition = arrayID + (partsCount * threadID * 5) - ((partsCount - Calculations.shift) * threadID * 5);
+         Calculations.dataOutput[arrayPosition] = res;
          arrayID++;
       }
       mm++;
